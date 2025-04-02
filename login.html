@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SIGMA - Connexion</title>
+    
+    <!-- Inclure les styles -->
+    <?!= include('css_styles'); ?>
+    
+    <!-- Inclure Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-auth-compat.js"></script>
+    
+    <!-- Inclure les scripts utilitaires -->
+    <?!= include('js_loggingUtils'); ?>
+    <?!= include('js_firebaseUtils'); ?>
+    
+    <style>
+      .login-container {
+        max-width: 400px;
+        margin: 50px auto;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        background-color: white;
+      }
+      
+      .login-logo {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      
+      .login-title {
+        text-align: center;
+        color: var(--primary-color);
+        margin-bottom: 30px;
+      }
+      
+      .login-button {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        margin: 10px 0;
+        border: none;
+        border-radius: 4px;
+        background-color: var(--primary-color);
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+        text-align: center;
+      }
+      
+      .login-button:hover {
+        background-color: #2c3e9b;
+      }
+      
+      .login-button-google {
+        background-color: #4285F4;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .login-button-google:hover {
+        background-color: #3367D6;
+      }
+      
+      .google-icon {
+        background-color: white;
+        border-radius: 2px;
+        padding: 4px;
+        margin-right: 10px;
+        height: 18px;
+      }
+      
+      .error-message {
+        color: var(--error-color);
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #ffebee;
+        border-radius: 4px;
+        text-align: center;
+        display: none;
+      }
+    </style>
+    
+    <script>
+      // Fonction pour se connecter avec Google
+      function signInWithGoogle() {
+        document.getElementById('error-message').style.display = 'none';
+        
+        initFirebase()
+          .then(() => {
+            const auth = getAuthInstance();
+            const provider = new firebase.auth.GoogleAuthProvider();
+            
+            return auth.signInWithPopup(provider);
+          })
+          .then((result) => {
+            logInfo('Connexion réussie avec Google', {
+              email: result.user.email,
+              displayName: result.user.displayName
+            });
+            
+            // Rediriger vers la page d'accueil
+            window.location.href = '?page=index';
+          })
+          .catch((error) => {
+            logError('Erreur de connexion avec Google', error);
+            document.getElementById('error-message').style.display = 'block';
+            document.getElementById('error-message').textContent = 
+              'Erreur de connexion: ' + (error.message || 'Veuillez réessayer');
+          });
+      }
+      
+      // Vérifier si l'utilisateur est déjà connecté au chargement de la page
+      document.addEventListener('DOMContentLoaded', function() {
+        initFirebase()
+          .then(() => {
+            const auth = getAuthInstance();
+            
+            auth.onAuthStateChanged(user => {
+              if (user) {
+                // L'utilisateur est déjà connecté, rediriger vers la page d'accueil
+                logInfo('Utilisateur déjà connecté, redirection vers l\'accueil');
+                window.location.href = '?page=index';
+              }
+            });
+          })
+          .catch(error => {
+            logError('Erreur lors de l\'initialisation de Firebase sur la page de connexion', error);
+          });
+      });
+    </script>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-logo">
+        <h2>SIGMA</h2>
+      </div>
+      
+      <h1 class="login-title">Connexion</h1>
+      
+      <div id="error-message" class="error-message"></div>
+      
+      <button class="login-button login-button-google" onclick="signInWithGoogle()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
+        Se connecter avec Google
+      </button>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SIGMA - Dashboard</title>
+    
+    <!-- Inclure les styles -->
+    <?!= include('css_styles'); ?>
+    
+    <!-- Inclure Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-auth-compat.js"></script>
+    
+    <!-- Inclure les scripts utilitaires -->
+    <?!= include('js_loggingUtils'); ?>
+    <?!= include('js_firebaseUtils'); ?>
+    <?!= include('js_uiUtils'); ?>
+    <?!= include('js_stateManager'); ?>
+    
+    <!-- Inclure le script principal -->
+    <?!= include('js_main'); ?>
+  </head>
+  <body>
+    <!-- Contenu à remplacer par la structure du dashboard -->
+    <div class="container">
+      <h1>SIGMA - Dashboard</h1>
+      <p>Tableau de bord en cours de développement</p>
+      
+      <!-- Les 7 tableaux du Dashboard à implémenter -->
+      <div id="alertesStock" class="dashboard-card">
+        <h2>📢 Alertes Stock !</h2>
+        <div class="card-content">
+          <!-- Contenu dynamique -->
+        </div>
+      </div>
+      
+      <!-- Autres tableaux à ajouter -->
+    </div>
+  </body>
+</html>
