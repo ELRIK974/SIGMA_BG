@@ -19,12 +19,16 @@
     <?!= include('js_firebaseUtils'); ?>
     <?!= include('js_uiUtils'); ?>
     <?!= include('js_stateManager'); ?>
+    <?!= include('js_auth'); ?>
     
     <!-- Inclure le script principal -->
     <?!= include('js_main'); ?>
   </head>
   <body>
-    <!-- Contenu à remplacer par la structure du dashboard -->
+    <!-- Navigation principale -->
+    <?!= include('html/menu'); ?>
+    
+    <!-- Contenu principal -->
     <div class="container">
       <h1>SIGMA - Dashboard</h1>
       <p>Tableau de bord en cours de développement</p>
@@ -38,6 +42,29 @@
       </div>
       
       <!-- Autres tableaux à ajouter -->
+      <div id="materielManquant" class="dashboard-card">
+        <h2>❌ Matériel spécifique manquant</h2>
+        <div class="card-content">
+          <!-- Contenu dynamique -->
+        </div>
+      </div>
+      
+      <div id="empruntsNonRevenus" class="dashboard-card">
+        <h2>🚨 Emprunts non revenus</h2>
+        <div class="card-content">
+          <!-- Contenu dynamique -->
+        </div>
+      </div>
+      
+      <div id="prochainsEmprunts" class="dashboard-card">
+        <h2>📅 Prochains emprunts</h2>
+        <div class="card-content">
+          <!-- Contenu dynamique -->
+        </div>
+      </div>
     </div>
+    
+    <!-- Pied de page -->
+    <?!= include('html/footer'); ?>
   </body>
 </html>

@@ -1,3 +1,162 @@
 <script>
-<?!= include('js/auth'); ?>
+/**
+ * Fonctions d'authentification pour SIGMA
+ * 
+ * Ce fichier gère:
+ * - La connexion et déconnexion
+ * - La gestion des utilisateurs
+ * - La vérification des rôles
+ */
+
+// Observer l'état d'authentification
+function initAuth() {
+  // Vérifier que nous sommes dans l'environnement navigateur
+  if (typeof document === 'undefined') return;
+  
+  const auth = getAuthInstance();
+  
+  if (!auth) {
+    logError("Instance Auth non disponible dans initAuth");
+    return;
+  }
+  
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      // Utilisateur connecté
+      logInfo('Utilisateur connecté', {
+        email: user.email,
+        displayName: user.displayName
+      });
+      
+      // Mettre à jour l'état de l'application
+      updateState({ user: { 
+        uid: user.uid, 
+        email: user.email, 
+        displayName: user.displayName,
+        photoURL: user.photoURL
+      }});
+      
+      // Vérifier les rôles de l'utilisateur
+      getUserRole(user);
+    } else {
+      // Utilisateur déconnecté
+      logInfo('Utilisateur déconnecté');
+      updateState({ user: null, userRole: null });
+      
+      // Rediriger vers la page de connexion si nécessaire
+      // window.location.href = '?page=login';
+    }
+  });
+}
+
+// Connecter un utilisateur avec Google
+function signInWithGoogle() {
+  // Vérifier que nous sommes dans l'environnement navigateur
+  if (typeof document === 'undefined') return Promise.reject("Environnement non-navigateur");
+  
+  const auth = getAuthInstance();
+  
+  if (!auth) {
+    return Promise.reject("Instance Auth non disponible");
+  }
+  
+  const provider = new firebase.auth.GoogleAuthProvider();
+  
+  return auth.signInWithPopup(provider)
+    .then(result => {
+      logInfo('Connexion réussie avec Google', {
+        email: result.user.email,
+        displayName: result.user.displayName
+      });
+      return result;
+    })
+    .catch(error => {
+      logError('Erreur de connexion avec Google', error);
+      showNotification('Erreur lors de la connexion: ' + error.message, 'error');
+      throw error;
+    });
+}
+
+// Déconnecter l'utilisateur
+function signOut() {
+  // Vérifier que nous sommes dans l'environnement navigateur
+  if (typeof document === 'undefined') return Promise.reject("Environnement non-navigateur");
+  
+  const auth = getAuthInstance();
+  
+  if (!auth) {
+    return Promise.reject("Instance Auth non disponible");
+  }
+  
+  return auth.signOut()
+    .then(() => {
+      logInfo('Déconnexion réussie');
+      showNotification('Vous avez été déconnecté', 'info');
+    })
+    .catch(error => {
+      logError('Erreur de déconnexion', error);
+      throw error;
+    });
+}
+
+// Obtenir le rôle de l'utilisateur
+async function getUserRole(user) {
+  // Vérifier que nous sommes dans l'environnement navigateur
+  if (typeof document === 'undefined') return Promise.resolve();
+  
+  if (!user) {
+    logWarning('Tentative de récupération du rôle pour un utilisateur null');
+    return;
+  }
+  
+  try {
+    const db = getFirestoreInstance();
+    
+    if (!db) {
+      logError("Instance Firestore non disponible dans getUserRole");
+      return;
+    }
+    
+    const userDoc = await db.collection('users').doc(user.uid).get();
+    
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      updateState({ userRole: userData.role });
+      logInfo('Rôle utilisateur récupéré', { role: userData.role });
+    } else {
+      // Créer l'utilisateur s'il n'existe pas
+      await db.collection('users').doc(user.uid).set({
+        email: user.email,
+        displayName: user.displayName || '',
+        role: 'utilisateur', // Rôle par défaut
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      
+      updateState({ userRole: 'utilisateur' });
+      logInfo('Nouvel utilisateur créé', { role: 'utilisateur' });
+    }
+  } catch (error) {
+    logError('Erreur lors de la récupération du rôle', error);
+  }
+}
+
+// Vérifier si l'utilisateur a un rôle spécifique
+function hasRole(requiredRole) {
+  const { userRole } = appState;
+  
+  // Si l'utilisateur est admin, il a accès à tout
+  if (userRole === 'admin') return true;
+  
+  // Sinon, vérifier le rôle spécifique
+  if (requiredRole === 'regisseur') {
+    return userRole === 'regisseur' || userRole === 'admin';
+  }
+  
+  // Pour le rôle 'utilisateur', tous les utilisateurs connectés y ont accès
+  if (requiredRole === 'utilisateur') {
+    return !!userRole;
+  }
+  
+  return false;
+}
 </script>

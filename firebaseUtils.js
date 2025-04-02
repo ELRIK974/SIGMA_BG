@@ -20,6 +20,76 @@ let firebaseInitialized = false;
 let initializationPromise = null;
 
 /**
+ * Vérifie si les émulateurs Firebase doivent être utilisés
+ * @return {boolean} True si les émulateurs doivent être utilisés
+ */
+function shouldUseEmulators() {
+  // Vérifier en priorité dans le localStorage
+  try {
+    const localSetting = localStorage.getItem('SIGMA_USE_EMULATORS');
+    if (localSetting === 'true') {
+      return true;
+    } else if (localSetting === 'false') {
+      return false;
+    }
+    // Si pas de valeur dans localStorage, la configuration serveur sera utilisée
+  } catch (e) {
+    // Si localStorage n'est pas disponible, ignorer l'erreur
+  }
+  
+  // La décision finale sera prise selon la configuration serveur
+  return false;
+}
+
+/**
+ * Configure les émulateurs Firebase pour les tests locaux
+ * @param {Object} config - Configuration incluant les paramètres des émulateurs
+ */
+function setupEmulators(config) {
+  if (!config.emulators) {
+    logWarning('Configuration des émulateurs manquante');
+    return;
+  }
+  
+  logInfo('Configuration des émulateurs Firebase en cours...');
+  
+  // Configurer l'émulateur Firestore
+  if (config.emulators.firestore && firestoreDB) {
+    firestoreDB.useEmulator(
+      config.emulators.firestore.host,
+      config.emulators.firestore.port
+    );
+    logInfo(`Émulateur Firestore configuré: ${config.emulators.firestore.host}:${config.emulators.firestore.port}`);
+  }
+  
+  // Configurer l'émulateur Auth
+  if (config.emulators.auth && auth) {
+    auth.useEmulator(`http://${config.emulators.auth.host}:${config.emulators.auth.port}`);
+    logInfo(`Émulateur Auth configuré: ${config.emulators.auth.host}:${config.emulators.auth.port}`);
+  }
+  
+  // Configurer l'émulateur Functions
+  if (config.emulators.functions && functions) {
+    functions.useEmulator(
+      config.emulators.functions.host,
+      config.emulators.functions.port
+    );
+    logInfo(`Émulateur Functions configuré: ${config.emulators.functions.host}:${config.emulators.functions.port}`);
+  }
+  
+  // Configurer l'émulateur Storage
+  if (config.emulators.storage && storage) {
+    storage.useEmulator(
+      config.emulators.storage.host,
+      config.emulators.storage.port
+    );
+    logInfo(`Émulateur Storage configuré: ${config.emulators.storage.host}:${config.emulators.storage.port}`);
+  }
+  
+  logInfo('Configuration des émulateurs Firebase terminée');
+}
+
+/**
  * Initialise Firebase avec la configuration obtenue du serveur
  * @return {Promise} Promesse résolue quand Firebase est initialisé
  */
@@ -35,6 +105,9 @@ function initFirebase() {
       resolve();
       return;
     }
+    
+    // Déterminer si les émulateurs doivent être utilisés
+    const useEmulators = shouldUseEmulators();
     
     // Appel au serveur pour obtenir la configuration
     google.script.run
@@ -82,9 +155,14 @@ function initFirebase() {
             storage = firebase.storage();
           }
           
+          // Si les émulateurs doivent être utilisés, configurer les connexions aux émulateurs
+          if (useEmulators && config.useEmulators) {
+            setupEmulators(config);
+          }
+          
           firebaseInitialized = true;
           
-          logInfo('Firebase initialisé avec succès');
+          logInfo('Firebase initialisé avec succès' + (useEmulators ? ' (mode émulateur)' : ''));
           
           // Déclencher l'événement d'initialisation
           document.dispatchEvent(new Event('firebase-ready'));
@@ -100,7 +178,7 @@ function initFirebase() {
         logError(errorMsg, error);
         reject(new Error(errorMsg));
       })
-      .getFirebaseConfig();
+      .getFirebaseConfig(useEmulators); // Passer le paramètre pour inclure la config des émulateurs si nécessaire
   });
   
   return initializationPromise;

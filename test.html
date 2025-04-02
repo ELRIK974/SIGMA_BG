@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIGMA - Tests</title>
+  <?!= include('css_styles'); ?>
+  <style>
+    .test-section {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .test-button {
+      margin: 5px;
+    }
+    
+    #testResults {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 15px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    .success {
+      color: #28a745;
+    }
+    
+    .error {
+      color: #dc3545;
+    }
+    
+    .emulator-active {
+      background-color: #ffc107;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <h1>SIGMA - Page de Test</h1>
+    
+    <div id="emulatorActive" class="emulator-active">
+      ⚠️ MODE ÉMULATEUR ACTIVÉ - Les données ne sont pas persistantes
+    </div>
+    
+    <div class="test-section">
+      <h2>Configuration des Émulateurs</h2>
+      <p>Activer ou désactiver le mode émulateur pour les tests de développement.</p>
+      <div>
+        <button id="enableEmulator" class="btn btn-warning test-button">Activer les Émulateurs</button>
+        <button id="disableEmulator" class="btn btn-secondary test-button">Désactiver les Émulateurs</button>
+      </div>
+    </div>
+    
+    <div class="test-section">
+      <h2>Tests Firebase</h2>
+      <p>Exécuter des tests sur la connexion Firebase et les opérations CRUD.</p>
+      <div>
+        <button id="testFirebase" class="btn btn-primary test-button">Tester la Connexion Firebase</button>
+      </div>
+    </div>
+    
+    <div class="test-section">
+      <h2>Test Logging</h2>
+      <p>Générer des logs de différents niveaux pour tester l'intégration avec Cloud Operations.</p>
+      <div>
+        <button id="generateInfo" class="btn btn-info test-button">Log INFO</button>
+        <button id="generateWarning" class="btn btn-warning test-button">Log WARNING</button>
+        <button id="generateError" class="btn btn-danger test-button">Log ERROR</button>
+      </div>
+    </div>
+    
+    <h3>Résultats des Tests</h3>
+    <div id="testResults">Les résultats des tests s'afficheront ici...</div>
+  </div>
+  
+  <!-- Scripts de base -->
+  <?!= include('js_loggingUtils'); ?>
+  
+  <!-- Scripts Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+  
+  <?!= include('js_firebaseUtils'); ?>
+  <?!= include('js_testFirebase'); ?>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialiser l'application
+      initFirebase().catch(error => {
+        appendToResults('Erreur d\'initialisation Firebase: ' + error.message, 'error');
+      });
+      
+      // Vérifier si le mode émulateur est actif
+      const isEmulatorActive = localStorage.getItem('SIGMA_USE_EMULATORS') === 'true';
+      if (isEmulatorActive) {
+        document.getElementById('emulatorActive').style.display = 'block';
+      }
+      
+      // Boutons pour les émulateurs
+      document.getElementById('enableEmulator').addEventListener('click', function() {
+        toggleEmulatorMode(true);
+        appendToResults('Mode émulateur activé. Rafraîchissez la page pour appliquer les changements.');
+        setTimeout(() => { location.reload(); }, 2000);
+      });
+      
+      document.getElementById('disableEmulator').addEventListener('click', function() {
+        toggleEmulatorMode(false);
+        appendToResults('Mode émulateur désactivé. Rafraîchissez la page pour appliquer les changements.');
+        setTimeout(() => { location.reload(); }, 2000);
+      });
+      
+      // Test Firebase
+      document.getElementById('testFirebase').addEventListener('click', async function() {
+        appendToResults('Démarrage des tests Firebase...');
+        
+        try {
+          const testResults = await runFirebaseTests();
+          
+          // Construire un rapport structuré
+          let report = [];
+          report.push('Tests terminés:');
+          report.push(`- Initialisation: ${testResults.initialization ? '✅' : '❌'}`);
+          report.push(`- Opérations CRUD:`);
+          report.push(`  - Création: ${testResults.document.creation ? '✅' : '❌'}`);
+          report.push(`  - Lecture: ${testResults.document.reading ? '✅' : '❌'}`);
+          report.push(`  - Mise à jour: ${testResults.document.update ? '✅' : '❌'}`);
+          report.push(`  - Suppression: ${testResults.document.deletion ? '✅' : '❌'}`);
+          report.push(`- Requête: ${testResults.query ? '✅' : '❌'}`);
+          report.push(`- Transaction: ${testResults.transaction ? '✅' : '❌'}`);
+          
+          if (testResults.errors.length > 0) {
+            report.push('\nErreurs rencontrées:');
+            testResults.errors.forEach((error, index) => {
+              report.push(`${index + 1}. [${error.stage}] ${error.error}`);
+            });
+          }
+          
+          appendToResults(report.join('\n'));
+        } catch (error) {
+          appendToResults('Erreur lors de l\'exécution des tests: ' + error.message, 'error');
+        }
+      });
+      
+      // Tests de logging
+      document.getElementById('generateInfo').addEventListener('click', function() {
+        logInfo('Test de log INFO depuis la page de test', { source: 'page_test', timestamp: new Date().toISOString() });
+        appendToResults('Log INFO généré.');
+      });
+      
+      document.getElementById('generateWarning').addEventListener('click', function() {
+        logWarning('Test de log WARNING depuis la page de test', { source: 'page_test', timestamp: new Date().toISOString() });
+        appendToResults('Log WARNING généré.');
+      });
+      
+      document.getElementById('generateError').addEventListener('click', function() {
+        logError('Test de log ERROR depuis la page de test', { source: 'page_test', timestamp: new Date().toISOString() });
+        appendToResults('Log ERROR généré.');
+      });
+    });
+    
+    // Fonction pour ajouter du texte à la zone de résultats
+    function appendToResults(text, type) {
+      const resultDiv = document.getElementById('testResults');
+      const timestamp = new Date().toLocaleTimeString();
+      
+      // Créer un élément pour le nouveau texte
+      const newContent = document.createElement('div');
+      if (type) {
+        newContent.className = type;
+      }
+      
+      newContent.textContent = `[${timestamp}] ${text}`;
+      
+      // Ajouter au début des résultats
+      if (resultDiv.firstChild) {
+        resultDiv.insertBefore(newContent, resultDiv.firstChild);
+      } else {
+        resultDiv.appendChild(newContent);
+      }
+    }
+  </script>
+</body>
+</html>
